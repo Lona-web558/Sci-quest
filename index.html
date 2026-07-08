@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCI·QUEST — University Trig, Log &amp; Calculus Drill</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0e12;
+    --panel: #10161b;
+    --phosphor: #3dffa0;
+    --phosphor-dim: #1e8a5c;
+    --amber: #ffb627;
+    --danger: #ff5c5c;
+    --ink: #cfe8dc;
+    --ink-dim: #6f8a80;
+    --grid-line: rgba(61,255,160,0.06);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+    position: relative;
+  }
+  /* oscilloscope grid backdrop */
+  body::before{
+    content:"";
+    position: fixed; inset:0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events:none;
+    z-index:0;
+  }
+  #waveCanvas{
+    position: fixed; inset:0;
+    width:100%; height:100%;
+    z-index:0;
+    opacity:0.55;
+  }
+  .stage{
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding: 24px 16px;
+  }
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    letter-spacing: 0.35em;
+    font-size: 0.7rem;
+    color: var(--phosphor-dim);
+    text-transform:uppercase;
+    margin-bottom: 6px;
+  }
+  h1.title{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    color: var(--phosphor);
+    text-shadow: 0 0 18px rgba(61,255,160,0.35);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.15em;
+  }
+  .tagline{
+    color: var(--ink-dim);
+    font-size:0.95rem;
+    margin-bottom: 28px;
+  }
+  .console{
+    width:100%;
+    max-width: 560px;
+    background: linear-gradient(180deg, rgba(16,22,27,0.92), rgba(10,14,18,0.96));
+    border: 1px solid rgba(61,255,160,0.18);
+    border-radius: 10px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 20px 60px rgba(0,0,0,0.55), inset 0 0 40px rgba(61,255,160,0.03);
+    padding: 28px 28px 24px;
+    backdrop-filter: blur(2px);
+  }
+  .hud-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-family:'Space Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--ink-dim);
+    margin-bottom: 18px;
+    letter-spacing: 0.05em;
+  }
+  .hud-value{
+    color: var(--phosphor);
+    font-weight: 700;
+  }
+  #timeValue.low{ color: var(--danger); }
+  .timer-track{
+    height: 4px;
+    width:100%;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-bottom: 22px;
+    overflow:hidden;
+  }
+  #timerFill{
+    height:100%;
+    width:100%;
+    background: var(--phosphor);
+    transition: width 1s linear, background 0.3s ease;
+  }
+  .question-wrap{
+    text-align:center;
+    min-height: 130px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    margin-bottom: 22px;
+  }
+  .qfunc{
+    font-family:'Space Mono', monospace;
+    font-size: clamp(1.9rem, 7vw, 2.6rem);
+    color: #eafff4;
+    letter-spacing: 0.02em;
+  }
+  .qfunc .fn{ color: var(--amber); }
+  .qhint{
+    font-size: 0.78rem;
+    color: var(--ink-dim);
+    margin-top: 6px;
+    letter-spacing:0.08em;
+  }
+  .choices{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .choice-btn{
+    font-family:'Space Mono', monospace;
+    font-size: 1.05rem;
+    background: rgba(61,255,160,0.04);
+    border: 1px solid rgba(61,255,160,0.25);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 14px 10px;
+    transition: all 0.12s ease;
+  }
+  .choice-btn:hover{
+    background: rgba(61,255,160,0.12);
+    border-color: var(--phosphor);
+    color: var(--phosphor);
+  }
+  .choice-btn:active{ transform: scale(0.97); }
+  .choice-btn.correct{
+    background: rgba(61,255,160,0.22);
+    border-color: var(--phosphor);
+    color: var(--phosphor);
+  }
+  .choice-btn.wrong{
+    background: rgba(255,92,92,0.18);
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  .choice-btn:disabled{ pointer-events:none; opacity:0.85; }
+
+  /* Results panel */
+  .results{ display:none; text-align:center; }
+  .results.active{ display:block; }
+  .quiz-body.hidden{ display:none; }
+  .score-big{
+    font-family:'Space Mono', monospace;
+    font-size: 3.4rem;
+    color: var(--phosphor);
+    text-shadow: 0 0 24px rgba(61,255,160,0.4);
+    line-height:1;
+    margin: 6px 0 2px;
+  }
+  .score-label{
+    color: var(--ink-dim);
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform:uppercase;
+    margin-bottom: 22px;
+  }
+  .stat-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 26px;
+  }
+  .stat{
+    border: 1px solid rgba(61,255,160,0.15);
+    border-radius: 8px;
+    padding: 12px 6px;
+  }
+  .stat .n{
+    font-family:'Space Mono', monospace;
+    font-size: 1.3rem;
+    color: var(--phosphor);
+  }
+  .stat .l{
+    font-size: 0.65rem;
+    color: var(--ink-dim);
+    text-transform:uppercase;
+    letter-spacing: 0.08em;
+  }
+  .restart-btn{
+    font-family:'Space Mono', monospace;
+    letter-spacing:0.08em;
+    background: var(--phosphor);
+    color: #062017;
+    border:none;
+    border-radius: 6px;
+    padding: 13px 30px;
+    font-weight:700;
+    font-size: 0.95rem;
+    box-shadow: 0 0 24px rgba(61,255,160,0.25);
+  }
+  .restart-btn:hover{ background:#5dffb3; color:#04140f; }
+  .start-hint{
+    color: var(--ink-dim);
+    font-size: 0.8rem;
+    margin-top:18px;
+    letter-spacing:0.04em;
+  }
+  .flash-ring{
+    position: fixed; inset:0; pointer-events:none; z-index:2;
+    box-shadow: inset 0 0 0px rgba(61,255,160,0);
+    transition: box-shadow 0.25s ease;
+  }
+  .flash-ring.correct{ box-shadow: inset 0 0 140px rgba(61,255,160,0.25); }
+  .flash-ring.wrong{ box-shadow: inset 0 0 140px rgba(255,92,92,0.28); }
+  @media (prefers-reduced-motion: reduce){
+    #timerFill{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="waveCanvas"></canvas>
+<div class="flash-ring" id="flashRing"></div>
+
+<div class="stage">
+  <div class="eyebrow">UNIVERSITY LEVEL · 60 SECOND DRILL</div>
+  <h1 class="title">SCI·QUEST</h1>
+  <div class="tagline">radians · inverse trig · ln &amp; log laws · derivatives — before the trace flatlines</div>
+
+  <div class="console">
+
+    <!-- START SCREEN -->
+    <div id="startScreen">
+      <div class="question-wrap">
+        <div class="qfunc"><span class="fn">f(x)</span> = calc &amp; trig</div>
+        <div class="qhint">60 SECONDS · MULTIPLE CHOICE · NO CALCULATOR</div>
+      </div>
+      <div class="d-grid">
+        <button class="restart-btn" id="startBtn">START DRILL</button>
+      </div>
+      <div class="start-hint">radians, e, and base-10 log · d/dx included</div>
+    </div>
+
+    <!-- QUIZ BODY -->
+    <div id="quizBody" class="quiz-body hidden">
+      <div class="hud-row">
+        <span>SCORE <span class="hud-value" id="scoreValue">0</span></span>
+        <span>TIME <span class="hud-value" id="timeValue">60</span>s</span>
+      </div>
+      <div class="timer-track"><div id="timerFill"></div></div>
+
+      <div class="question-wrap">
+        <div class="qfunc" id="questionText">—</div>
+        <div class="qhint" id="questionHint">&nbsp;</div>
+      </div>
+
+      <div class="choices" id="choicesGrid"></div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results" class="results">
+      <div class="score-label">FINAL SCORE</div>
+      <div class="score-big" id="finalScore">0</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="n" id="statCorrect">0</div><div class="l">Correct</div></div>
+        <div class="stat"><div class="n" id="statWrong">0</div><div class="l">Missed</div></div>
+        <div class="stat"><div class="n" id="statAcc">0%</div><div class="l">Accuracy</div></div>
+      </div>
+      <div class="d-grid">
+        <button class="restart-btn" id="restartBtn">RESTART</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- Background oscilloscope wave ----------
+  const canvas = document.getElementById('waveCanvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, t = 0;
+  function resize(){ w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+
+  let waveEnergy = 1; // amplitude multiplier, pulses on answer
+  function drawWave(){
+    ctx.clearRect(0,0,w,h);
+    const midY = h * 0.55;
+    const amp = 46 * waveEnergy;
+    ctx.beginPath();
+    for(let x=0; x<=w; x+=4){
+      const y = midY + Math.sin((x*0.012) + t) * amp * Math.sin((x*0.003)+t*0.4);
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle = 'rgba(61,255,160,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = 'rgba(61,255,160,0.6)';
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+
+    // secondary faint cos trace
+    ctx.beginPath();
+    for(let x=0; x<=w; x+=4){
+      const y = midY + Math.cos((x*0.012) + t*1.3) * (amp*0.55);
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle = 'rgba(255,182,39,0.18)';
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    t += 0.02;
+    waveEnergy += (1 - waveEnergy) * 0.08; // decay back to baseline
+    requestAnimationFrame(drawWave);
+  }
+  drawWave();
+
+  function pulseWave(strength){ waveEnergy = strength; }
+
+  // ---------- Question generation (university level) ----------
+  function round2(n){ return Math.round(n*100)/100; }
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  // Standard radian angles as {label, rad}
+  const PI_ANGLES = [
+    {label:'0', rad:0}, {label:'π/6', rad:Math.PI/6}, {label:'π/4', rad:Math.PI/4},
+    {label:'π/3', rad:Math.PI/3}, {label:'π/2', rad:Math.PI/2}, {label:'2π/3', rad:2*Math.PI/3},
+    {label:'3π/4', rad:3*Math.PI/4}, {label:'5π/6', rad:5*Math.PI/6}, {label:'π', rad:Math.PI},
+    {label:'7π/6', rad:7*Math.PI/6}, {label:'5π/4', rad:5*Math.PI/4}, {label:'4π/3', rad:4*Math.PI/3},
+    {label:'3π/2', rad:3*Math.PI/2}, {label:'5π/3', rad:5*Math.PI/3}, {label:'7π/4', rad:7*Math.PI/4},
+    {label:'11π/6', rad:11*Math.PI/6}, {label:'2π', rad:2*Math.PI}
+  ];
+
+  function genTrigQuestion(){
+    const fns = ['sin','cos','tan','sec','csc','cot'];
+    const fn = fns[Math.floor(Math.random()*fns.length)];
+    let angle, raw;
+    let attempts = 0;
+    do{
+      angle = PI_ANGLES[Math.floor(Math.random()*PI_ANGLES.length)];
+      const c = Math.cos(angle.rad), s = Math.sin(angle.rad);
+      if(fn==='sin') raw = s;
+      else if(fn==='cos') raw = c;
+      else if(fn==='tan') raw = Math.abs(c) < 1e-9 ? Infinity : s/c;
+      else if(fn==='sec') raw = Math.abs(c) < 1e-9 ? Infinity : 1/c;
+      else if(fn==='csc') raw = Math.abs(s) < 1e-9 ? Infinity : 1/s;
+      else raw = Math.abs(s) < 1e-9 ? Infinity : c/s;
+      attempts++;
+    } while(!isFinite(raw) && attempts < 30);
+    const answer = round2(raw);
+    return {
+      type:'numeric',
+      label: `${fn}(${angle.label})`,
+      hint: 'RADIANS · EXACT VALUE TO 2 D.P.',
+      answer
+    };
+  }
+
+  function genInverseTrig(){
+    const bank = [
+      {fn:'arcsin', x:0.5},{fn:'arcsin', x:-0.5},{fn:'arcsin', x:1},{fn:'arcsin', x:0.71},{fn:'arcsin', x:0.87},
+      {fn:'arccos', x:0.5},{fn:'arccos', x:-0.5},{fn:'arccos', x:0},{fn:'arccos', x:0.71},{fn:'arccos', x:-1},
+      {fn:'arctan', x:1},{fn:'arctan', x:-1},{fn:'arctan', x:1.73},{fn:'arctan', x:0.58},{fn:'arctan', x:0}
+    ];
+    const pick = bank[Math.floor(Math.random()*bank.length)];
+    let raw;
+    if(pick.fn==='arcsin') raw = Math.asin(pick.x);
+    else if(pick.fn==='arccos') raw = Math.acos(pick.x);
+    else raw = Math.atan(pick.x);
+    return {
+      type:'numeric',
+      label: `${pick.fn}(${pick.x})`,
+      hint: 'ANSWER IN RADIANS (2 D.P.)',
+      answer: round2(raw)
+    };
+  }
+
+  function superscript(n){
+    const map = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+    return n.toString().split('').map(c=>map[c]||c).join('');
+  }
+
+  function genLnQuestion(){
+    const kind = Math.random();
+    if(kind < 0.6){
+      const n = Math.floor(Math.random()*8) - 3; // -3..4
+      return { type:'numeric', label: `ln(e${superscript(n)})`, hint: 'NATURAL LOG · SIMPLIFY', answer: n };
+    } else {
+      const vals = [{x:1,a:0},{x:Math.E,a:1},{x:Math.E*Math.E,a:2}];
+      const pick = vals[Math.floor(Math.random()*vals.length)];
+      return { type:'numeric', label: `ln(${round2(pick.x)})`, hint: 'NATURAL LOG (2 D.P.)', answer: pick.a };
+    }
+  }
+
+  function genLogLaw(){
+    // uses log2 ≈ 0.301, log3 ≈ 0.477 (base 10)
+    const bank = [
+      {label:'log(6)', hint:'log2≈0.301, log3≈0.477 · log(6)=log2+log3', answer: round2(0.301+0.477)},
+      {label:'log(4)', hint:'log2≈0.301 · log(4)=2·log2', answer: round2(2*0.301)},
+      {label:'log(9)', hint:'log3≈0.477 · log(9)=2·log3', answer: round2(2*0.477)},
+      {label:'log(2/3)', hint:'log2≈0.301, log3≈0.477 · log(a/b)=log a − log b', answer: round2(0.301-0.477)},
+      {label:'log(12)', hint:'log2≈0.301, log3≈0.477 · log(12)=2log2+log3', answer: round2(2*0.301+0.477)},
+      {label:'log(1.5)', hint:'log2≈0.301, log3≈0.477 · log(3/2)=log3−log2', answer: round2(0.477-0.301)},
+      {label:'log(8)', hint:'log2≈0.301 · log(8)=3·log2', answer: round2(3*0.301)},
+      {label:'log(5)', hint:'log2≈0.301 · log(5)=1−log2 (since 5=10/2)', answer: round2(1-0.301)},
+      {label:'log(0.5)', hint:'log2≈0.301 · log(1/2)=−log2', answer: round2(-0.301)}
+    ];
+    const pick = bank[Math.floor(Math.random()*bank.length)];
+    return { type:'numeric', label: pick.label, hint: pick.hint, answer: pick.answer };
+  }
+
+  function genExpEquation(){
+    const bank = [
+      {label:'2ˣ = 32', answer:5},{label:'3ˣ = 81', answer:4},{label:'5ˣ = 125', answer:3},
+      {label:'2ˣ = 1/8', answer:-3},{label:'4ˣ = 64', answer:3},{label:'10ˣ = 0.01', answer:-2},
+      {label:'2ˣ = 1', answer:0},{label:'7ˣ = 49', answer:2},{label:'3ˣ = 1/9', answer:-2}
+    ];
+    const pick = bank[Math.floor(Math.random()*bank.length)];
+    return { type:'numeric', label: `Solve: ${pick.label}`, hint: 'SOLVE FOR x', answer: pick.answer };
+  }
+
+  const DERIVATIVE_BANK = [
+    {label:'d/dx [sin x]', answer:'cos x', distractors:['−cos x','−sin x','sec²x']},
+    {label:'d/dx [cos x]', answer:'−sin x', distractors:['sin x','cos x','−cos x']},
+    {label:'d/dx [tan x]', answer:'sec²x', distractors:['csc²x','−sec²x','sec x·tan x']},
+    {label:'d/dx [ln x]', answer:'1/x', distractors:['x','ln x','1/x²']},
+    {label:'d/dx [eˣ]', answer:'eˣ', distractors:['x·eˣ⁻¹','eˣ/x','1']},
+    {label:'d/dx [x³]', answer:'3x²', distractors:['x²','3x','x³/3']},
+    {label:'d/dx [sec x]', answer:'sec x·tan x', distractors:['sec²x','−csc x·cot x','tan x']},
+    {label:'d/dx [√x]', answer:'1/(2√x)', distractors:['√x/2','2√x','1/√x']}
+  ];
+  function genDerivative(){
+    const pick = DERIVATIVE_BANK[Math.floor(Math.random()*DERIVATIVE_BANK.length)];
+    return { type:'string', label: pick.label, hint: 'DIFFERENTIATE', answer: pick.answer, distractors: pick.distractors };
+  }
+
+  function generateQuestion(){
+    const roll = Math.random();
+    if(roll < 0.34) return genTrigQuestion();
+    if(roll < 0.50) return genInverseTrig();
+    if(roll < 0.65) return genLnQuestion();
+    if(roll < 0.80) return genLogLaw();
+    if(roll < 0.90) return genExpEquation();
+    return genDerivative();
+  }
+
+  function formatAns(v){
+    if(typeof v === 'string') return v;
+    if(Number.isInteger(v)) return v.toString();
+    return v.toFixed(2);
+  }
+
+  function renderLabel(label){
+    const idx = label.indexOf('(');
+    if(idx > 0){
+      const prefix = label.slice(0, idx);
+      if(/^[a-zA-Z]+$/.test(prefix)){
+        return `<span class="fn">${prefix}</span>${label.slice(idx)}`;
+      }
+    }
+    return label;
+  }
+
+  function generateChoices(current){
+    if(current.distractors){
+      return shuffle([current.answer, ...current.distractors]);
+    }
+    const correctAnswer = current.answer;
+    const set = new Set([correctAnswer]);
+    const commonVals = [-1,-0.87,-0.71,-0.5,0,0.5,0.58,0.71,0.87,1,1.73,2,3,-2,-3,4,-4,0.301,0.477,0.602,0.778,0.954];
+    while(set.size < 4){
+      let candidate;
+      const roll = Math.random();
+      if(roll < 0.5){
+        const delta = (Math.random()<0.5?-1:1) * (Math.round(Math.random()*30+5)/100 + (Number.isInteger(correctAnswer)?1:0));
+        candidate = round2(correctAnswer + delta);
+      } else {
+        candidate = commonVals[Math.floor(Math.random()*commonVals.length)];
+      }
+      set.add(candidate);
+    }
+    return shuffle(Array.from(set));
+  }
+
+  // ---------- Game state ----------
+  let score = 0, correctCount = 0, wrongCount = 0, timeLeft = 60, timerInterval = null, current = null;
+
+  const startScreen = document.getElementById('startScreen');
+  const quizBody = document.getElementById('quizBody');
+  const resultsPanel = document.getElementById('results');
+  const scoreValue = document.getElementById('scoreValue');
+  const timeValue = document.getElementById('timeValue');
+  const timerFill = document.getElementById('timerFill');
+  const questionText = document.getElementById('questionText');
+  const questionHint = document.getElementById('questionHint');
+  const choicesGrid = document.getElementById('choicesGrid');
+  const flashRing = document.getElementById('flashRing');
+
+  function nextQuestion(){
+    current = generateQuestion();
+    questionText.innerHTML = renderLabel(current.label);
+    questionHint.textContent = current.hint;
+    const choices = generateChoices(current);
+    choicesGrid.innerHTML = '';
+    choices.forEach(val => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = formatAns(val);
+      btn.dataset.value = val;
+      btn.addEventListener('click', () => handleAnswer(val, btn));
+      choicesGrid.appendChild(btn);
+    });
+  }
+
+  function isMatch(selected, answer){
+    if(typeof answer === 'string' || typeof selected === 'string'){
+      return String(selected) === String(answer);
+    }
+    return Math.abs(parseFloat(selected) - answer) < 0.001;
+  }
+
+  function handleAnswer(selected, btn){
+    const buttons = choicesGrid.querySelectorAll('.choice-btn');
+    buttons.forEach(b => b.disabled = true);
+    const isCorrect = isMatch(selected, current.answer);
+    if(isCorrect){
+      score += 10;
+      correctCount++;
+      btn.classList.add('correct');
+      pulseWave(2.2);
+      flashRing.classList.add('correct');
+      setTimeout(()=>flashRing.classList.remove('correct'), 250);
+    } else {
+      wrongCount++;
+      btn.classList.add('wrong');
+      buttons.forEach(b => { if(isMatch(b.dataset.value, current.answer)) b.classList.add('correct'); });
+      pulseWave(0.3);
+      flashRing.classList.add('wrong');
+      setTimeout(()=>flashRing.classList.remove('wrong'), 250);
+    }
+    scoreValue.textContent = score;
+    setTimeout(() => {
+      if(timeLeft > 0) nextQuestion();
+    }, 380);
+  }
+
+  function startTimer(){
+    timeLeft = 60;
+    timeValue.textContent = timeLeft;
+    timerFill.style.width = '100%';
+    timerFill.style.background = 'var(--phosphor)';
+    timeValue.classList.remove('low');
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      timeValue.textContent = timeLeft;
+      timerFill.style.width = (timeLeft/60*100) + '%';
+      if(timeLeft <= 10){
+        timerFill.style.background = 'var(--danger)';
+        timeValue.classList.add('low');
+      }
+      if(timeLeft <= 0){
+        clearInterval(timerInterval);
+        endGame();
+      }
+    }, 1000);
+  }
+
+  function startGame(){
+    score = 0; correctCount = 0; wrongCount = 0;
+    scoreValue.textContent = '0';
+    startScreen.classList.add('hidden');
+    resultsPanel.classList.remove('active');
+    quizBody.classList.remove('hidden');
+    nextQuestion();
+    startTimer();
+  }
+
+  function endGame(){
+    quizBody.classList.add('hidden');
+    resultsPanel.classList.add('active');
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('statCorrect').textContent = correctCount;
+    document.getElementById('statWrong').textContent = wrongCount;
+    const total = correctCount + wrongCount;
+    const acc = total > 0 ? Math.round((correctCount/total)*100) : 0;
+    document.getElementById('statAcc').textContent = acc + '%';
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('restartBtn').addEventListener('click', () => {
+    resultsPanel.classList.remove('active');
+    startGame();
+  });
+})();
+</script>
+</body>
+</html>
